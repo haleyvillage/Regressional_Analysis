@@ -30,5 +30,4 @@ cat(output_text, sep = "\n")
 triples_confint <- confint(beta, "TRIPLES", level = 0.95)
 print(triples_confint)
 
-predict(beta,data.frame(HITS =1477, DOUBLES=311, TRIPLES=31, HOMERUNS=215, WALKS=542, STRIKEOUTS=1327, STOLEBASES=108, CAUGHTSTEAL=30, GRNDOUTS=1.09, SINGLES=920), interval="prediction")
-
+predict (beta,data.frame (mlb[30,]), interval="prediction", level =0.95)
