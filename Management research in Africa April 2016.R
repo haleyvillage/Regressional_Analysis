@@ -9,8 +9,6 @@ beta <- lm(Corrupt~ GDP , data = africa)
 plot(africa$GDP, africa$Corrupt, main="GDP Per Capita as a Linear Predictor of Corruption Level", xlab="GDP per capita", ylab="corruption level")
 abline(beta,col="blue",lwd=2,lty=2)
 
-Coefficients and significance
-
 summary(beta)
 
 confint(beta,parm='GDP', level = 0.95)
