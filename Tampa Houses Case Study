@@ -1,0 +1,228 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("plyr")
+library("car")
+```
+
+Sales prices of houses in Tampa, Florida.
+
+For 460 houses that were sold in four neighborhoods of 
+Tampa, Florida, the sales price (SALES) was recorded in 2017-2018.
+
+We like to model the sales price based on appraised land value (LAND),
+appraised improvement value (IMP) and the neighborhoods (NBHD) of the 
+houses. The neighborhoods are:
+
+Town & County (TOWN&CTY), Cheval (CHEVAL), Hunter's Green (HUNGREEN), Davis Isles (DAVISISLE)
+
+```{r}
+tampa <- read.csv("TAMSALES4.csv", header=TRUE)
+```
+
+Basic information
+```{r}
+summary(tampa)
+```
+Measurement Note: Prices are given in $1000. 
+
+Plot the sales price versus appraised land and improvement values
+```{r}
+scatterplotMatrix(~ SALES + LAND + IMP, smooth = FALSE, data = tampa)
+```
+
+There is a positive relationship between appraised prices and sale price. We will now further investigate sale price. 
+```{r}
+boxplot(SALES ~ NBHD, data = tampa, main="Distribution of sales prices by neighborhood")
+```
+
+There are clearly difference in the sales price by neighborhood. Davis Isles
+seems to be the neighborhood with the highest sales prices, with some exceptional
+prices above 2 million dollar. Town & County seems to be the lowest price
+neighborhood. The neighborhoods Cheval, Hunter's Green and Town and County
+are all grouped together compared with Davis Isles.
+
+We change NBHD variable to a factor and reorder the factor according to the 
+book. 
+
+```{r}
+tampa$NBHD = as.factor(tampa$NBHD)
+tampa$NBHD = factor(tampa$NBHD, levels = c( "TOWN&CTY","CHEVAL", "DAVISISLE", "HUNGREEN"))
+tampa$NBHD = revalue(tampa$NBHD, c("CHEVAL"="CH", "DAVISISLE"="DI", "HUNGREEN"="HG", "TOWN&CTY"="TC")) # make names shorter
+```
+
+Now we get the summary statistics of the sales by neighborhood:
+
+**Town & Country**:
+```{r}
+summary(tampa$SALES[tampa$NBHD == "TC"])
+```
+**Cheval**:
+```{r}
+summary(tampa$SALES[tampa$NBHD == "CH"])
+```
+**Davis Isles**:
+```{r}
+summary(tampa$SALES[tampa$NBHD == "DI"])
+```
+**Hunter's Green**:
+```{r}
+summary(tampa$SALES[tampa$NBHD == "HG"])
+```
+
+
+
+## MODEL 1
+Our first model tries to explain the sales price with a linear
+model, based only on appraised land and improvement values.
+
+## Find the regression coefficients for a complete quadratic model
+```{r}
+beta1 = lm(SALES ~ LAND + IMP , data = tampa)
+summary(beta1)
+```
+We see that the model is useful to explain the average sales price,
+as the F-statistic has a p-value in the rounding error range.
+Both coefficients are highly significant and the model explains
+about 96.6% of the squared variability. 
+
+The s value is about $103,500 so we expect that we can predict 
+the average sales price by about $207,000. Especially for the 
+lower priced neighborhoods that makes the model not useful. 
+
+Both coefficients are positive as we expect. 
+For every $1 increase of appraised land value the sales price 
+goes up by around $1.60 and for every $1 increase of appraised 
+improvement value the sales price goes up by about $1.10.
+
+## MODEL 2
+In addition to the appraised land and improvement values
+we now include the neighborhood as a qualitative 
+variable in our model. The model is still first order
+without interaction terms.
+
+```{r}
+beta2 = lm(SALES ~ LAND + IMP + NBHD, data = tampa)
+summary(beta2)
+```
+
+We already suspect that the model is useful, as it includes 
+the first model. The $r^2$ is slightly improved
+to 96.7%, the adjusted $r^2_a$ very little. 
+The s value has decreased to $101,200, but again 
+very minor, so it seems that the inclusion
+of the linear neighborhood terms has improved 
+the model 1 only very modestly. 
+
+## Model 3
+Now we include interaction terms between the appraised 
+values and the neighborhoods.
+
+```{r}
+beta3 = lm(SALES ~ LAND + IMP + NBHD + LAND:NBHD + IMP:NBHD, data = tampa)
+summary(beta3)
+```
+
+The $r^2$ value has improved very little, but s has decreased
+to $96,180 so the predictive values has improved. 
+The F-value indicates again the usefulness of the model.
+
+None of the interaction terms seems significant,
+but overall they lead to an improvement.
+
+## Model 4
+In the final model we add an interaction term between 
+land and improvement appraisal and then also the interaction
+of this term with the neighborhood.
+
+
+```{r}
+beta4 = lm(SALES ~ LAND + IMP + I(LAND*IMP) + NBHD + LAND:NBHD + IMP:NBHD + I(LAND*IMP):NBHD, data = tampa)
+summary(beta4)
+```
+Again we have minor a minor improvement in the $r^2$ value and
+s is decreased by another $100. 
+
+## Comparison of models.
+We compare now successively the nested models to see which ones still 
+add significantly to the previous model.
+
+```{r}
+anova(beta1, beta2)
+
+anova(beta2, beta3)
+
+anova(beta3, beta4)
+```
+
+We see that model 2 significantly improves on model 1 and model 3 
+significantly improves on model 2. Each the time the p-values
+is far below 1%. But model 4 does not seem to add any value
+to model 4, the p-value is about 30%. 
+So, it seems that model 3 is our "best" model. 
+
+## Result of model 3:
+
+Based on model 3 we get the following prediction equation
+for the expected sales value. The neighborhoods are sorted
+by increasing median sales prices.
+
+**Town & Country** neighborhood:
+
+E(SALES) = 52 + 1.07$\times$LAND + 0.87$\times$IMP
+
+**Hunter's Green** neighborhood:
+
+E(SALES) = 52 + 1.07$\times$LAND + 0.87$\times$IMP 
+              + 10.69
+              - 0.49$\times$LAND + 0.34$\times$IMP
+              
+E(SALES) = 62.69 + 0.58$\times$LAND + 1.21$\times$IMP   
+
+**Cheval** neighborhood:
+
+E(SALES) = 52 + 1.07$\times$LAND + 0.87$\times$IMP 
+              + 22.48
+              + 0.60$\times$LAND - 0.03$\times$IMP
+              
+E(SALES) = 74.48 + 1.67$\times$LAND + 0.84$\times$IMP   
+        
+**Davis Isles** neighborhood:
+
+E(SALES) = 52 + 1.07$\times$LAND + 0.87$\times$IMP 
+              - 142.15
+              + 0.66$\times$LAND + 0.25$\times$IMP  
+              
+E(SALES) = -90.15 + 1.73$\times$LAND + 1.12$\times$IMP       
+
+In each neighborhood the regression parameters are different. 
+
+For the most expensive neighborhood the land and 
+the improvement coefficient are larger than
+1, so the these values seem to be under appraised. 
+
+For the Cheval neighborhood the same is true for the 
+appraised land value, but not for the improvement
+value. 
+
+For the Hunter's Green neighborhood the appraised
+land value seems to play only less of a factor for
+the sales price. It has the lowest of all coefficients. 
+So, the land value here is over appraised. 
+One might have to look into reasons for this,
+maybe the neighborhood is older and the 
+appraised values are older too. 
+
+## Finally we look at the residuals.
+
+```{r}
+plot(tampa$SALES,  beta3$residuals, main="Residual distribution", xlab="Sales price / $1000",
+     ylab="Residual / $1000")
+```
+
+We see that the residual get larger with larger sales prices, so one of the 
+conditions for applying the regression analysis seems not satisfied.
+We will learn in chapter 8 how we can address this problem. 
+
+
+
